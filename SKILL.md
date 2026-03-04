@@ -83,6 +83,13 @@ Approximately how many slides? Options: Short 5-10 / Medium 10-20 / Long 20+
 **Question 3 — Content** (header: "Content"):
 Do you have content ready? Options: All content ready / Rough notes / Topic only
 
+**Question 4 — Inline Editing** (header: "Editing"):
+Do you need to edit text directly in the browser after generation? Options:
+- "Yes (Recommended)" — Can edit text in-browser, auto-save to localStorage, export file
+- "No" — Presentation only, keeps file smaller
+
+**Remember the user's editing choice — it determines whether edit-related code is included in Phase 3.**
+
 If user has content, ask them to share it.
 
 ---
@@ -169,6 +176,7 @@ When converting PowerPoint files:
    - File location, style name, slide count
    - Navigation: Arrow keys, Space, scroll/swipe, click nav dots
    - How to customize: `:root` CSS variables for colors, font link for typography, `.reveal` class for animations
+   - If inline editing was enabled: Hover top-left corner or press E to enter edit mode, click any text to edit, Ctrl+S to save
 
 ---
 

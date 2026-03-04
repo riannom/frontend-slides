@@ -165,6 +165,93 @@ Every presentation must include:
    - Magnetic buttons
    - Counter animations
 
+4. **Inline Editing** (only if user opted in during Phase 1 — skip entirely if they said No):
+   - Edit toggle button (hidden by default, revealed via hover hotzone or `E` key)
+   - Auto-save to localStorage
+   - Export/save file functionality
+   - See "Inline Editing Implementation" section below
+
+## Inline Editing Implementation (Opt-In Only)
+
+**If the user chose "No" for inline editing in Phase 1, do NOT generate any edit-related HTML, CSS, or JS.**
+
+**Do NOT use CSS `~` sibling selector for hover-based show/hide.** The CSS-only approach (`edit-hotzone:hover ~ .edit-toggle`) fails because `pointer-events: none` on the toggle button breaks the hover chain: user hovers hotzone -> button becomes visible -> mouse moves toward button -> leaves hotzone -> button disappears before click.
+
+**Required approach: JS-based hover with 400ms delay timeout.**
+
+HTML:
+```html
+<div class="edit-hotzone"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">✏️</button>
+```
+
+CSS (visibility controlled by JS classes only):
+```css
+/* Do NOT use CSS ~ sibling selector for this!
+   pointer-events: none breaks the hover chain.
+   Must use JS with delay timeout. */
+.edit-hotzone {
+    position: fixed; top: 0; left: 0;
+    width: 80px; height: 80px;
+    z-index: 10000;
+    cursor: pointer;
+}
+.edit-toggle {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 10001;
+}
+.edit-toggle.show,
+.edit-toggle.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+```
+
+JS (three interaction methods):
+```javascript
+// 1. Click handler on the toggle button
+document.getElementById('editToggle').addEventListener('click', () => {
+    editor.toggleEditMode();
+});
+
+// 2. Hotzone hover with 400ms grace period
+const hotzone = document.querySelector('.edit-hotzone');
+const editToggle = document.getElementById('editToggle');
+let hideTimeout = null;
+
+hotzone.addEventListener('mouseenter', () => {
+    clearTimeout(hideTimeout);
+    editToggle.classList.add('show');
+});
+hotzone.addEventListener('mouseleave', () => {
+    hideTimeout = setTimeout(() => {
+        if (!editor.isActive) editToggle.classList.remove('show');
+    }, 400);
+});
+editToggle.addEventListener('mouseenter', () => {
+    clearTimeout(hideTimeout);
+});
+editToggle.addEventListener('mouseleave', () => {
+    hideTimeout = setTimeout(() => {
+        if (!editor.isActive) editToggle.classList.remove('show');
+    }, 400);
+});
+
+// 3. Hotzone direct click
+hotzone.addEventListener('click', () => {
+    editor.toggleEditMode();
+});
+
+// 4. Keyboard shortcut (E key, skip when editing text)
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) {
+        editor.toggleEditMode();
+    }
+});
+```
+
 ## Code Quality
 
 **Comments:** Every section needs clear comments explaining what it does and how to modify it.
