@@ -327,6 +327,36 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 
 ---
 
+## Preset pitfalls to watch for
+
+### Serif display fonts + uppercase = broken
+
+When generating with a serif display preset (**Notebook Tabs**, **Paper & Ink**, **Vintage Editorial**, **Dark Botanical**), uppercase headlines fight the typeface's optical adjustments and italic distinctiveness. Always set `text-transform: none` on:
+
+- `h1.page-title`, `h2.page-title`
+- Title-slide and intermission headlines
+- Card and step headings
+
+Keep uppercase only on small labels (kickers, chips, rule chrome). See [css-gotchas.md](css-gotchas.md) #5.
+
+### Font-metric differences cause overflow
+
+Switching from a compact sans (Nunito) to a wider one (Geist, IBM Plex, Fraunces) pushes content taller. Tight two-column slides that fit in one font may clip in another — content gets hidden by the parent's `overflow: hidden`.
+
+**When restyling an existing deck:**
+
+- Re-verify content-dense slides at 1280×720 AND at 700/600/500 px short-viewport breakpoints
+- Reduce `clamp()` max sizes on body copy if switching to a wider font
+- Highest-risk: slides with stat-big + subtitle + card-grid stacked in one column
+
+See [css-gotchas.md](css-gotchas.md) #4.
+
+### Always include font fallbacks
+
+Never `font-family: 'Geist'` alone. Always `font-family: 'Geist', system-ui, sans-serif`. Fonts arrive late; Safari in particular may render nothing at all until the `@font-face` lands. See [css-gotchas.md](css-gotchas.md) #7.
+
+---
+
 ## CSS Gotchas
 
 ### Negating CSS Functions

@@ -70,6 +70,7 @@ Determine what the user wants:
 - **Mode A: New Presentation** — Create from scratch. Go to Phase 1.
 - **Mode B: PPT Conversion** — Convert a .pptx file. Go to Phase 4.
 - **Mode C: Enhancement** — Improve an existing HTML presentation. Read it, understand it, enhance. **Follow Mode C modification rules below.**
+- **Mode D: Style Conversion** — Keep all content from an existing HTML deck but swap its visual style. Go to Phase 4C.
 
 ### Mode C: Modification Rules
 
@@ -204,6 +205,48 @@ When converting PowerPoint files:
 
 ---
 
+---
+
+## Phase 4C: Style Conversion (Mode D)
+
+When restyling an existing HTML deck while preserving all content:
+
+1. **Don't rewrite the deck.** HTML structure and content stay intact — only CSS and chrome change.
+2. **Use an override block.** Append a new `/* === [STYLE_NAME] OVERRIDES === */` block at the end of the existing `<style>` element. This block:
+   - Redefines `:root` variables (colors, fonts, spacing, accent-rgb)
+   - Overrides specific class styles via higher source-order specificity
+   - Adds brand integration, hover patterns, or new decorative elements
+3. **Save as a new file.** Preserve the original as `[name]_[style].html` (e.g. `deck_consulting.html`, `deck_saas.html`). Never overwrite the original unless the user explicitly requests it.
+4. **Unique localStorage keys.** If the deck has inline editing, change the `storageKey` per variant so edits don't cross-contaminate. Also update `download` filename in `exportFile()`.
+5. **Font loading check.** New fonts from Google/Fontshare may flash unstyled (FOUT). Always include concrete fallbacks: `'Geist', system-ui, sans-serif` — never just a single font name.
+6. **Verify content-dense slides.** Font metric changes can overflow tight layouts. Re-check multi-column slides and tables at 1280×720 and the 700/600/500 px short-viewport breakpoints. See `css-gotchas.md` #4.
+7. **Style-specific rewrites.** Some overrides require targeted attention:
+   - Serif display fonts need `text-transform: none` on page titles and card headings (see `css-gotchas.md` #5)
+   - Rounded SaaS-style cards need `border-radius` + soft shadows added everywhere the base deck uses sharp corners
+   - Dark themes need higher hover-alpha values (see `hover-patterns.md`)
+
+### Common override targets
+
+| What to override | Typical selectors |
+|---|---|
+| Background pattern/grid | `body { background-image }` |
+| Typography tokens | `:root { --font-display, --font-body, --font-mono }` |
+| Color tokens | `:root { --bg, --ink, --accent, --accent-rgb }` |
+| Uppercase titles (serif swap) | `h1.page-title, h2.page-title, .title-slide h1, .card h3 { text-transform: none }` |
+| Border radius + shadows | `.card, .step, .data-table` |
+| Chrome | `.progress-bar, .nav-dots, .slide-counter` |
+
+### Multi-variant workflow
+
+When the user wants multiple style variants of one deck (e.g., "show me consulting AND saas"):
+
+1. Duplicate the source file: `cp deck.html deck_consulting.html; cp deck.html deck_saas.html`
+2. Apply a different override block to each
+3. Give each variant its own `storageKey` and download filename
+4. Open all variants so the user can compare side-by-side
+
+---
+
 ## Phase 5: Delivery
 
 1. **Clean up** — Delete `.claude-design/slide-previews/` if it exists
@@ -317,6 +360,9 @@ This captures each slide as a screenshot and combines them into a PDF. Perfect f
 | [viewport-base.css](viewport-base.css)             | Mandatory responsive CSS — copy into every presentation              | Phase 3 (generation)      |
 | [html-template.md](html-template.md)               | HTML structure, JS features, code quality standards                  | Phase 3 (generation)      |
 | [animation-patterns.md](animation-patterns.md)     | CSS/JS animation snippets and effect-to-feeling guide                | Phase 3 (generation)      |
+| [css-gotchas.md](css-gotchas.md)                   | Known CSS traps: flex:0 collapse, pseudo-element leak, font overflow | Phase 3 + Phase 4C (generation + restyle) |
+| [brand-integration.md](brand-integration.md)       | Recipe for weaving client logo + wordmark subtly across a deck       | Phase 3 + Phase 4C        |
+| [hover-patterns.md](hover-patterns.md)             | Shine sweep + cursor spotlight + lift recipe for presenter emphasis  | Phase 3 + Phase 4C        |
 | [scripts/extract-pptx.py](scripts/extract-pptx.py) | Python script for PPT content extraction                             | Phase 4 (conversion)      |
 | [scripts/deploy.sh](scripts/deploy.sh)             | Deploy slides to Vercel for instant sharing                          | Phase 6 (sharing)         |
 | [scripts/export-pdf.sh](scripts/export-pdf.sh)     | Export slides to PDF                                                 | Phase 6 (sharing)         |
