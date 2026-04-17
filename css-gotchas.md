@@ -153,6 +153,94 @@ Embedding a logo as a base64 `data:` URI keeps the deck a single self-contained 
 
 ---
 
+## 11. `background-position: %` is a no-op when `background-size: 100% 100%`
+
+**Symptom:** You animate `background-position` from `0` to `-100%` (or any percentage) expecting the background image to scroll, but nothing moves. The animation declares motion and plays silently.
+
+**Cause:** Per spec, percentage-based `background-position` is calculated as `percentage × (container_size − image_size)`. When `background-size: 100% 100%` sets the image to exactly match the container, the difference is zero. Any percentage value × 0 = no movement.
+
+**When it bites:** Animating scrolling backgrounds (ocean waves, parallax patterns, infinite-scroll stripes). Feels like the animation "just isn't working."
+
+**Fix:** Either use an image smaller than the container (e.g., `background-size: 50% 100%` so tiles can actually slide), OR use viewport/pixel units (`background-size: 100vw 100%` with `background-position: 0 → -100vw`), OR animate a `transform: translateX` on a pseudo-element wider than the container. The transform approach is most reliable and GPU-accelerated:
+
+```css
+.container { position: relative; overflow: hidden; }
+.container::before {
+    content: '';
+    position: absolute; top: 0; bottom: 0; left: 0;
+    width: 200%;                              /* double container */
+    background: url(tile.svg) repeat-x;
+    background-size: 50% 100%;                /* 1 tile = 1 container */
+    animation: scroll 30s linear infinite;
+}
+@keyframes scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }     /* shift one tile width */
+}
+```
+
+See [animation-patterns.md](animation-patterns.md) for the full seamless-parallax recipe.
+
+---
+
+## 12. `background: rgba(...)` shorthand silently resets `background-image`
+
+**Symptom:** You set `background-image: radial-gradient(...)` on `.card` in one rule, then later add a tint override with `background: rgba(0,120,144,0.05)` elsewhere. The gradient disappears.
+
+**Cause:** The `background` shorthand resets every sub-property it doesn't explicitly mention — including `background-image`, which gets set to `none`. A value like `background: rgba(...)` only sets `background-color`, but the shorthand implicitly clears the other sub-properties.
+
+**When it bites:** When layering a hover effect (like a cursor-tracking radial-gradient on `background-image`) and later adding a color-tint override for the same element. The new tint wins and wipes the gradient even though they seem to target different properties.
+
+**Fix:** Use `background-color` explicitly when you only want to touch the color layer:
+
+```css
+/* ✗ WRONG — wipes any background-image set earlier */
+.card:nth-child(4n+1) { background: rgba(0, 120, 144, 0.05); }
+
+/* ✓ RIGHT — color only, gradient preserved */
+.card:nth-child(4n+1) { background-color: rgba(0, 120, 144, 0.05); }
+```
+
+Alternative for hover layers: put the hover effect on a pseudo-element (`::after`) so it's isolated from the element's own background stack entirely.
+
+---
+
+## 13. Multiple animations on the same property — only the last wins
+
+**Symptom:** You declare two animations in the shorthand: `animation: drift 40s infinite, bob 10s infinite alternate`. You expect drift to animate `transform: translateX` and bob to animate `transform: translateY` independently — but only the bob motion is visible; the drift seems stuck.
+
+**Cause:** When multiple animations target the same property (`transform` is a single property, not per-axis), the one declared LATEST in the list wins at every keyframe. There's no additive composition unless you use `@property` with explicit CSS custom properties, which isn't widely supported yet.
+
+**When it bites:** Any time you want "drift horizontally AND bob vertically" on one element, and both effects touch `transform`.
+
+**Fix:** Either:
+1. **Combine into one compound keyframe** (simplest, most compatible):
+   ```css
+   @keyframes drift_and_bob {
+       0%   { transform: translate3d(-50%,  0px, 0); }
+       25%  { transform: translate3d(-37%,  -4px, 0); }
+       50%  { transform: translate3d(-25%,  0px, 0); }
+       75%  { transform: translate3d(-13%,  -4px, 0); }
+       100% { transform: translate3d(  0%,  0px, 0); }
+   }
+   ```
+2. **Split across two nested elements** — one child does X, its parent does Y.
+3. **Use `@property` with custom properties** (modern browsers):
+   ```css
+   @property --x { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+   @property --y { syntax: '<length>'; inherits: false; initial-value: 0px; }
+   .element {
+       transform: translate3d(var(--x), var(--y), 0);
+       animation: drift-x 40s linear infinite, bob-y 10s ease alternate infinite;
+   }
+   @keyframes drift-x { to { --x: -50%; } }
+   @keyframes bob-y  { to { --y:  -4px; } }
+   ```
+
+Option 1 covers 98% of use cases. Use compound keyframes unless you need the axes to cycle at wildly different rates.
+
+---
+
 ## Pre-delivery CSS checklist
 
 Before calling a deck done, grep the generated file for these red flags:
@@ -165,3 +253,14 @@ Before calling a deck done, grep the generated file for these red flags:
 | `text-transform: uppercase` + serif `font-family` | Broken serif headlines (see #5) |
 | Identical `storageKey` across variants | Editor cross-contamination (see #6) |
 | Single-name font-family with no fallback | FOUT risk (see #7) |
+| `background-position: -N%` with `background-size: 100% 100%` | No-op animation (see #11) |
+| `background: rgba(...)` on element that also has `background-image` elsewhere | Wiped gradient (see #12) |
+| Two `animation:` entries both touching `transform` | Conflicting animations (see #13) |
+
+## Page-number audit
+
+When a deck displays the slide number, keep exactly **one** source of truth:
+
+- Fixed corner counter (`.slide-counter`) OR rule-chrome text (`<span>NN / 52</span>`), not both
+- A content deck generated naively can end up with 2–3 redundant page-number elements per slide (fixed counter + rule-top right span + rule-bottom left span). Grep for `>\s*\d+\s*/\s*\d+\s*<` across the generated file to catch duplicates
+- If the fixed counter is present, remove the `NN / 52` spans from all `.rule-top` and `.rule-bottom` chrome — they're pure visual noise and can collide with fixed brand marks in the corner

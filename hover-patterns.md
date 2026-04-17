@@ -209,3 +209,64 @@ The combination creates **three levels of feedback** at different distances:
 3. **Close-up** — the cursor spotlight confirms "this is where I'm pointing" to anyone looking at the projector
 
 Presenters don't need to point physically — their cursor becomes the pointer. The audience's eyes follow naturally.
+
+---
+
+## Lesson: Unify, don't stack
+
+**Trap:** Applying two different hover effects to different subsets of interactive elements. For example, `.card` gets shine sweep + cursor spotlight, but `.step / .persona / .dt-leaf` get only the shine sweep because you didn't want to attach JS listeners to every small element.
+
+**Problem:** audience sees inconsistent behavior across the deck. Cards glow with a "ink-blot" radial spotlight; steps flash with a diagonal sheen. Users read the difference as "something's broken" rather than "this is intentional," even though both effects are technically correct.
+
+**Rule:** Pick ONE primary hover effect and apply it to the full interactive element set. If the spotlight is lighter-weight to attach everywhere (one `::after` pseudo-element + one delegated event listener), pick that. If shine-sweep is the better fit for your aesthetic, use it universally.
+
+**Universal cursor spotlight (recommended default):**
+
+```css
+.card::after, .step::after, .persona::after,
+.dt-leaf::after, .dt-box::after, .diagram .node::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(
+        circle 220px at var(--mx, 50%) var(--my, 50%),
+        rgba(var(--accent-rgb), 0.22) 0%,
+        rgba(var(--accent-rgb), 0.08) 45%,
+        transparent 75%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.25s ease;
+    border-radius: inherit;
+}
+.card:hover::after, .step:hover::after, .persona:hover::after,
+.dt-leaf:hover::after, .dt-box:hover::after, .diagram .node:hover::after {
+    opacity: 1;
+}
+.card > *, .step > *, .persona > *,
+.dt-leaf > *, .dt-box > *, .diagram .node > * {
+    position: relative; z-index: 2;           /* content above the glow */
+}
+```
+
+One JS block attaches the mousemove tracker to every target at once:
+
+```js
+(function () {
+    const sel = '.card, .step, .persona, .dt-leaf, .dt-box, .diagram .node';
+    document.querySelectorAll(sel).forEach(el => {
+        el.addEventListener('mousemove', (e) => {
+            const r = el.getBoundingClientRect();
+            el.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+            el.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+        });
+        el.addEventListener('mouseleave', () => {
+            el.style.setProperty('--mx', '50%');
+            el.style.setProperty('--my', '50%');
+        });
+    });
+})();
+```
+
+Row-style elements (`.vs-row`, `.agenda`, `.data-table tr`) are exceptions — pseudo-elements misbehave on grid/table rows. Use `:hover { background-color }` + optional inset bar for those. This is a deliberate tier-2 treatment, not the tier-1 spotlight treatment.
+
+**Don't mix background-image spotlights with element background color overrides.** If you put the spotlight in `background-image: radial-gradient(...)` directly on the element, a later rule like `.card:nth-child(4n+1) { background: rgba(...) }` will silently wipe it — the `background` shorthand resets `background-image` to `none` (see [css-gotchas.md](css-gotchas.md) #12). Pseudo-element approach dodges this entirely.
