@@ -1,5 +1,7 @@
 # Frontend Slides
 
+> Fork of [`zarazhangrui/frontend-slides`](https://github.com/zarazhangrui/frontend-slides) with three additional reference docs (`css-gotchas.md`, `brand-integration.md`, `hover-patterns.md`) and a new Mode D (Style Conversion) phase.
+
 A Claude Code skill for creating stunning, animation-rich HTML presentations — from scratch or by converting PowerPoint files.
 
 ## What This Does
@@ -22,14 +24,16 @@ https://github.com/user-attachments/assets/ef57333e-f879-432a-afb9-180388982478
 
 ### Via Plugin Marketplace (Recommended)
 
-Install directly from Claude Code in two commands:
+Install directly from Claude Code by copying these two commands:
 
 ```bash
-/plugin marketplace add zarazhangrui/frontend-slides
+/plugin marketplace add riannom/frontend-slides
 /plugin install frontend-slides@frontend-slides
 ```
 
 Then use it by typing `/frontend-slides` in Claude Code.
+
+To install the upstream (zarazhangrui) version instead, swap `riannom` for `zarazhangrui` in the first command.
 
 ### Manual Installation
 
@@ -40,14 +44,16 @@ Copy the skill files to your Claude Code skills directory:
 mkdir -p ~/.claude/skills/frontend-slides/scripts
 
 # Copy all files (or clone this repo directly)
-cp SKILL.md STYLE_PRESETS.md viewport-base.css html-template.md animation-patterns.md ~/.claude/skills/frontend-slides/
+cp SKILL.md STYLE_PRESETS.md viewport-base.css html-template.md animation-patterns.md \
+   css-gotchas.md brand-integration.md hover-patterns.md \
+   ~/.claude/skills/frontend-slides/
 cp scripts/extract-pptx.py ~/.claude/skills/frontend-slides/scripts/
 ```
 
 Or clone directly:
 
 ```bash
-git clone https://github.com/zarazhangrui/frontend-slides.git ~/.claude/skills/frontend-slides
+git clone https://github.com/riannom/frontend-slides.git ~/.claude/skills/frontend-slides
 ```
 
 Then use it by typing `/frontend-slides` in Claude Code.
@@ -112,16 +118,19 @@ The skill will:
 
 This skill uses **progressive disclosure** — the main `SKILL.md` is a concise map (~180 lines), with supporting files loaded on-demand only when needed:
 
-| File                      | Purpose                        | Loaded When               |
-| ------------------------- | ------------------------------ | ------------------------- |
-| `SKILL.md`                | Core workflow and rules        | Always (skill invocation) |
-| `STYLE_PRESETS.md`        | 12 curated visual presets      | Phase 2 (style selection) |
-| `viewport-base.css`       | Mandatory responsive CSS       | Phase 3 (generation)      |
-| `html-template.md`        | HTML structure and JS features | Phase 3 (generation)      |
-| `animation-patterns.md`   | CSS/JS animation reference     | Phase 3 (generation)      |
-| `scripts/extract-pptx.py` | PPT content extraction         | Phase 4 (conversion)      |
-| `scripts/deploy.sh`       | Deploy to Vercel               | Phase 6 (sharing)         |
-| `scripts/export-pdf.sh`   | Export slides to PDF           | Phase 6 (sharing)         |
+| File                      | Purpose                                                               | Loaded When                     |
+| ------------------------- | --------------------------------------------------------------------- | ------------------------------- |
+| `SKILL.md`                | Core workflow and rules                                               | Always (skill invocation)       |
+| `STYLE_PRESETS.md`        | 12 curated visual presets                                             | Phase 2 (style selection)       |
+| `viewport-base.css`       | Mandatory responsive CSS                                              | Phase 3 (generation)            |
+| `html-template.md`        | HTML structure and JS features                                        | Phase 3 (generation)            |
+| `animation-patterns.md`   | CSS/JS animation reference                                            | Phase 3 (generation)            |
+| `css-gotchas.md`          | Known CSS traps (flex:0 collapse, pseudo-element leak, FOUT, etc.)    | Phase 3 + Phase 4C (restyle)    |
+| `brand-integration.md`    | Logo + wordmark integration recipe (chrome mark, animated section)    | Phase 3 + Phase 4C              |
+| `hover-patterns.md`       | Presenter-emphasis hover recipe (shine sweep + cursor spotlight)      | Phase 3 + Phase 4C              |
+| `scripts/extract-pptx.py` | PPT content extraction                                                | Phase 4 (conversion)            |
+| `scripts/deploy.sh`       | Deploy to Vercel                                                      | Phase 6 (sharing)               |
+| `scripts/export-pdf.sh`   | Export slides to PDF                                                  | Phase 6 (sharing)               |
 
 This design follows [OpenAI's harness engineering](https://openai.com/index/harness-engineering/) principle: "give the agent a map, not a 1,000-page instruction manual."
 
@@ -173,10 +182,14 @@ Uses [Playwright](https://playwright.dev) to screenshot each slide at 1920×1080
 
 ## Credits
 
-Created by [@zarazhangrui](https://github.com/zarazhangrui) with Claude Code.
+**Original project:** [Frontend Slides](https://github.com/zarazhangrui/frontend-slides) by [@zarazhangrui](https://github.com/zarazhangrui). All core architecture, workflow phases, the 12 curated style presets, the PPT conversion pipeline, and the Vercel/PDF sharing scripts are from the upstream project.
+
+**This fork** ([@riannom](https://github.com/riannom)) adds three reference docs — `css-gotchas.md`, `brand-integration.md`, `hover-patterns.md` — and a new **Mode D (Style Conversion)** phase to `SKILL.md`. These were distilled from a real project that restyled a PowerPoint deck into multiple HTML variants; full credit for the underlying skill design belongs to the upstream.
 
 Inspired by the "Vibe Coding" philosophy — building beautiful things without being a traditional software engineer.
 
 ## License
 
 MIT — Use it, modify it, share it.
+
+Original copyright © [@zarazhangrui](https://github.com/zarazhangrui); fork modifications © [@riannom](https://github.com/riannom). Both released under the MIT License.
